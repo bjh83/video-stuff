@@ -9,6 +9,8 @@ namespace video_utils {
 
     RGBFrame ConvertYUVToRGB(const YUVFrame& yuv_frame);
 
+    YUVFrame ConvertRGBToYUV(const RGBFrame& rgb_frame);
+
     bool WritePNG(std::string file_base_name, const RGBFrame& rgb_frame);
 } // namespace video_utils
 #endif // FRAME_UTILS_H
