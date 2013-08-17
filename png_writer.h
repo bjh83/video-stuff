@@ -21,7 +21,7 @@ namespace video_utils {
 
     class PNGWriter {
         public:
-            PNGWriter();
+            PNGWriter() {}
 
             bool Write(const std::string& file_name, const RGBFrame& rgb_frame);
 

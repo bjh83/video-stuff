@@ -23,6 +23,7 @@ namespace video_utils {
                     for (int i = 1; i < kChunkSize + 1; i++) {
                         plane++;
                         if (plane >= 3) {
+                            plane = 0;
                             x++;
                             if (x >= rgb_frame_.width()) {
                                 x = 0;
@@ -65,21 +66,32 @@ namespace video_utils {
                 int x = 0;
                 int y = 0;
                 int plane = 0;
-                int chunk_size_ = kChunkSize;
+                int chunk_size_ = kChunkSize + 1;
                 bool last_chunk_ = false;
         };
+
+        uint32_t ConvertToNetworkEndianness(uint32_t to_convert) {
+            uint8_t temp;
+            temp = ((char*) &to_convert)[3];
+            ((char*) &to_convert)[3] = ((char*) &to_convert)[0];
+            ((char*) &to_convert)[0] = temp;
+            temp = ((char*) &to_convert)[2];
+            ((char*) &to_convert)[2] = ((char*) &to_convert)[1];
+            ((char*) &to_convert)[1] = temp;
+            return to_convert;
+        }
     } // namespace
 
     CRCGenerator::CRCGenerator() : crc_table(256) {
         uint32_t remainder;
 
         for (int dividend = 0; dividend < 256; dividend++) {
-            remainder = static_cast<uint32_t>(dividend) << 24;
+            remainder = static_cast<uint32_t>(dividend);
             for (int k = 0; k < 8; k++) {
-                if (remainder & 0x80000000) {
-                    remainder = 0x04c11db7 ^ (remainder << 1);
+                if (remainder & 1) {
+                    remainder = 0xedb88320 ^ (remainder >> 1);
                 } else {
-                    remainder <<= 1;
+                    remainder >>= 1;
                 }
             }
             crc_table[dividend] = remainder;
@@ -88,10 +100,8 @@ namespace video_utils {
 
     void CRCGenerator::Update(const vector<uint8_t>& data) {
         for (int n = 0; n < static_cast<int>(data.size()); n++) {
-            const int i = ((current_crc >> 24) ^ data[n]) & 0xff;
-            current_crc = crc_table[i] ^ (current_crc << 8);
+            current_crc = crc_table[(current_crc ^ data[n]) & 0xff] ^ (current_crc >> 8);
         }
-        current_crc = ~current_crc;
     }
 
     void CRCGenerator::Update(uint8_t data) {
@@ -107,47 +117,66 @@ namespace video_utils {
     uint32_t CRCGenerator::Get() {
         uint32_t ret_val = current_crc;
         current_crc = 0xffffffff;
-        return ret_val;
+        return ret_val ^ current_crc;
     }
 
     bool PNGWriter::WriteHeader(int width, int height) {
         const vector<uint8_t> magic_numbers = {137, 80, 78, 71, 13, 10, 26, 10};
-        const uint32_t ihdr_length = 13;
+        const uint32_t ihdr_length = ConvertToNetworkEndianness(uint32_t(13));
         const vector<uint8_t> ihdr_message = {73, 72, 68, 82};
         const uint8_t bit_depth = 8;
         const uint8_t color_type = 2;
         const uint8_t compression_method = 0;
         const uint8_t filter_method = 0;
         const uint8_t interlace_method = 0;
-        file_.write((char*)magic_numbers.data(), magic_numbers.size());
-        file_ << ihdr_length;
+
+        file_.write((char*)magic_numbers.data(), 8);
+
         // Do not include length in CRC
-        file_.write((char*)ihdr_message.data(), ihdr_message.size());
+        file_.write((char*)&ihdr_length, 4);
+
         crc_generator_.Update(ihdr_message);
-        file_ << width;
+        file_.write((char*)ihdr_message.data(), ihdr_message.size());
+
+        width = ConvertToNetworkEndianness(width);
         crc_generator_.Update(static_cast<uint32_t>(width));
-        file_ << height;
+        file_.write((char*)&width, 4);
+
+        height = ConvertToNetworkEndianness(height);
         crc_generator_.Update(static_cast<uint32_t>(height));
-        file_ << bit_depth;
+        file_.write((char*)&height, 4);
+
         crc_generator_.Update(bit_depth);
-        file_ << color_type;
+        file_.write((char*)&bit_depth, 1);
+
         crc_generator_.Update(color_type);
-        file_ << compression_method;
+        file_.write((char*)&color_type, 1);
+
         crc_generator_.Update(compression_method);
-        file_ << filter_method;
+        file_.write((char*)&compression_method, 1);
+
         crc_generator_.Update(filter_method);
-        file_ << interlace_method;
+        file_.write((char*)&filter_method, 1);
+
         crc_generator_.Update(interlace_method);
-        file_ << crc_generator_.Get();
+        file_.write((char*)&interlace_method, 1);
+
+        uint32_t crc = ConvertToNetworkEndianness(crc_generator_.Get());
+        file_.write((char*)&crc, 4);
         return file_;
     }
 
     bool PNGWriter::WriteFrame(const RGBFrame& rgb_frame) {
-        const uint32_t byte_len = rgb_frame.height() * rgb_frame.width() * 3 + Chunkifier::HowManyChunksIn(rgb_frame); // IDAT chunk len
+        const uint32_t byte_len = ConvertToNetworkEndianness(rgb_frame.height() * rgb_frame.width() * 3 + Chunkifier::HowManyChunksIn(rgb_frame)); // IDAT chunk len
         const vector<uint8_t> idat_message = {73, 68, 65, 84};
-        file_ << byte_len;
-        file_.write((char*)idat_message.data(), idat_message.size());
+        const vector<uint8_t> deflate_header = {0x78, 0x01};
+        file_.write((char*)&byte_len, 4);
+
         crc_generator_.Update(idat_message);
+        file_.write((char*)idat_message.data(), idat_message.size());
+
+        crc_generator_.Update(deflate_header);
+        file_.write((char*)deflate_header.data(), deflate_header.size());
 
         Chunkifier chunkifier(rgb_frame);
         while (!chunkifier.last_chunk()) {
@@ -155,22 +184,28 @@ namespace video_utils {
             file_.write((char*)chunk.data(), chunkifier.chunk_size());
             crc_generator_.Update(chunk);
         }
-        file_ << crc_generator_.Get();
+
+        uint32_t crc = ConvertToNetworkEndianness(crc_generator_.Get());
+        file_.write((char*)&crc, 4);
         return file_;
     }
 
     bool PNGWriter::WriteEnd() {
-        const uint32_t byte_len = 0;
+        const uint32_t byte_len = ConvertToNetworkEndianness(0);
         const vector<uint8_t> iend_message = {73, 69, 78, 68};
-        file_ << byte_len;
-        file_.write((char*)iend_message.data(), iend_message.size());
+
+        file_.write((char*)&byte_len, 4);
+
         crc_generator_.Update(iend_message);
-        file_ << crc_generator_.Get();
+        file_.write((char*)iend_message.data(), iend_message.size());
+
+        uint32_t crc = ConvertToNetworkEndianness(crc_generator_.Get());
+        file_.write((char*)&crc, 4);
         return file_;
     }
 
     bool PNGWriter::Write(const string& file_name, const RGBFrame& rgb_frame) {
-        file_ = fstream(file_name);
+        file_.open(file_name, fstream::out | fstream::binary);
         if (!WriteHeader(rgb_frame.width(), rgb_frame.height())) {
             return false;
         } else if (!WriteFrame(rgb_frame)) {
