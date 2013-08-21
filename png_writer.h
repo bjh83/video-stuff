@@ -19,6 +19,19 @@ namespace video_utils {
             uint32_t current_crc = 0xffffffff;
     };
 
+    class AdlerGenerator {
+        public:
+            AdlerGenerator() {}
+            void Update(const std::vector<uint8_t>& data);
+            void Update(uint8_t data);
+            void Update(uint32_t data);
+            uint32_t Get();
+
+        private:
+            uint32_t a_ = 1;
+            uint32_t b_ = 0;
+    };
+
     class PNGWriter {
         public:
             PNGWriter() {}
