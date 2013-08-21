@@ -82,7 +82,7 @@ namespace video_utils {
                         last_chunk_ = true;
                         bucket_[0] = 1;
                     }
-                    uint16_t bucket_size = ConvertToNetworkEndianness(static_cast<uint16_t>(chunk_size_));
+                    uint16_t bucket_size = ConvertToNetworkEndianness(static_cast<uint16_t>(chunk_size_ - 5));
                     bucket_[1] = ((char*)&bucket_size)[0];
                     bucket_[2] = ((char*)&bucket_size)[1];
                     bucket_size = ~bucket_size;
