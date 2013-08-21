@@ -41,6 +41,20 @@ namespace video_utils {
                     bucket_[0] = 0;
                     bucket_[5] = 0;
                     for (int i = 6; i < kChunkSize + 5; i++) {
+                        switch(plane) {
+                            case 0:
+                                bucket_[i] = rgb_frame_.getR(x, y);
+                                adler_.Update(bucket_[i]);
+                                break;
+                            case 1:
+                                bucket_[i] = rgb_frame_.getG(x, y);
+                                adler_.Update(bucket_[i]);
+                                break;
+                            case 2:
+                                bucket_[i] = rgb_frame_.getB(x, y);
+                                adler_.Update(bucket_[i]);
+                                break;
+                        }
                         plane++;
                         if (plane >= 3) {
                             plane = 0;
@@ -55,23 +69,12 @@ namespace video_utils {
                                     bucket_[0] = 1;
                                     break;
                                 }
+                                i++;
+                                if (i >= kChunkSize + 5) {
+                                    break;
+                                }
                                 bucket_[i] = 0;
-                                continue;
                             }
-                        }
-                        switch(plane) {
-                            case 0:
-                                bucket_[i] = rgb_frame_.getR(x, y);
-                                adler_.Update(bucket_[i]);
-                                break;
-                            case 1:
-                                bucket_[i] = rgb_frame_.getG(x, y);
-                                adler_.Update(bucket_[i]);
-                                break;
-                            case 2:
-                                bucket_[i] = rgb_frame_.getB(x, y);
-                                adler_.Update(bucket_[i]);
-                                break;
                         }
                     }
 
