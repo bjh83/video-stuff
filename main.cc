@@ -12,8 +12,8 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    const int width = 400;
-    const int height = 400;
+    const int width = 100;
+    const int height = 100;
     RGBFrame rgb_frame(width, height);
 
     for (int y = 0; y < height; y++) {

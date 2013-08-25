@@ -22,6 +22,7 @@ namespace utils {
                 AppendUpdate
             };
 
+            File() {}
             File(const std::string& file_name, FileMode mode);
             ~File();
 
@@ -29,6 +30,12 @@ namespace utils {
             void Close();
 
             static std::string GetString(FileMode mode);
+
+            bool error() const;
+
+            operator bool() const { return error(); }
+
+            bool operator!() const { return !(*this); }
 
             virtual uint8_t Read_uint8();
             virtual uint16_t Read_uint16();

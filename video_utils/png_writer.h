@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include "rgb_frame.h"
+#include "video-stuff/utils/file.h"
 
 namespace video_utils {
     class CRCGenerator {
@@ -39,11 +40,20 @@ namespace video_utils {
             bool Write(const std::string& file_name, const RGBFrame& rgb_frame);
 
         private:
-            std::fstream file_;
+            utils::File file_;
             CRCGenerator crc_generator_;
             bool WriteHeader(int width, int height);
             bool WriteFrame(const RGBFrame& rgb_frame);
             bool WriteEnd();
+            void WriteData(uint8_t data);
+            void WriteData(uint16_t data);
+            void WriteData(uint32_t data);
+            void WriteData(const std::vector<uint8_t>& data);
+            void WriteAndUpdate(uint8_t data);
+            void WriteAndUpdate(uint16_t data);
+            void WriteAndUpdate(uint32_t data);
+            void WriteAndUpdate(const std::vector<uint8_t>& data);
+            void WriteCRC();
     };
 } // namespace video_utils
 #endif // PNG_WRITER_H

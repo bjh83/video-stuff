@@ -14,17 +14,17 @@ namespace utils {
     string File::GetString(FileMode mode) {
         switch (mode) {
             case FileMode::Read:
-                return "r";
+                return "rb";
             case FileMode::Write:
-                return "w";
+                return "wb";
             case FileMode::Append:
-                return "a";
+                return "ab";
             case FileMode::ReadUpdate:
-                return "r+";
+                return "r+b";
             case FileMode::WriteUpdate:
-                return "w+";
+                return "w+b";
             case FileMode::AppendUpdate:
-                return "a+";
+                return "a+b";
         }
     }
 
@@ -33,7 +33,13 @@ namespace utils {
     }
 
     void File::Close() {
-        fclose(file_.get());
+        if (file_) {
+            fclose(file_.release());
+        }
+    }
+
+    bool File::error() const {
+        return file_ && ferror(file_.get()) == 0;
     }
 
     uint8_t File::Read_uint8() {
