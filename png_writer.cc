@@ -25,7 +25,7 @@ namespace video_utils {
 
         class Chunkifier {
             public:
-                Chunkifier(const RGBFrame& rgb_frame) : bucket_(kChunkSize), rgb_frame_(rgb_frame) {}
+                Chunkifier(const RGBFrame& rgb_frame, fstream& file) : bucket_(kChunkSize), rgb_frame_(rgb_frame), file_(file) {}
                 static const int kChunkSize = 65535;
 
                 static int HowManyChunksIn(const RGBFrame& rgb_frame) {
@@ -99,6 +99,7 @@ namespace video_utils {
             private:
                 vector<uint8_t> bucket_;
                 const RGBFrame& rgb_frame_;
+                fstream& file_;
                 int x = 0;
                 int y = 0;
                 int plane = 0;
