@@ -1,6 +1,6 @@
 #include <iostream>
-#include "rgb_frame.h"
-#include "png_writer.h"
+#include "video_utils/rgb_frame.h"
+#include "video_utils/png_writer.h"
 
 using namespace std;
 using video_utils::PNGWriter;
