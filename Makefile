@@ -10,7 +10,7 @@ all: $(PROJECT)
 $(PROJECT): $(OBJS)
 	$(CC) -o $(PROJECT) $(OBJS)
 
-$(OBJS): rgb_frame.h png_writer.h
+$(OBJS): video_utils/rgb_frame.h video_utils/png_writer.h video_utils/png_writer.cc
 
 .PHONY: clean
 
