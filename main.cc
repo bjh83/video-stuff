@@ -1,6 +1,6 @@
 #include <iostream>
-#include "rgb_frame.h"
-#include "png_writer.h"
+#include "video_utils/rgb_frame.h"
+#include "video_utils/png_writer.h"
 
 using namespace std;
 using video_utils::PNGWriter;
@@ -12,8 +12,8 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    const int width = 1280;
-    const int height = 720;
+    const int width = 400;
+    const int height = 400;
     RGBFrame rgb_frame(width, height);
 
     for (int y = 0; y < height; y++) {
